@@ -1,10 +1,11 @@
 import math
+import copy
 
 
 def make_move(scores, index):
     # Removes the selected score from the list and returns the score
     score = scores[index]
-    scores = scores[:index] + scores[index+1:]
+    scores = scores[:index] + scores[index + 1:]
     return score, scores
 
 
@@ -31,9 +32,10 @@ def minimax(depth, alpha, beta, maximizing_player, scores, selected):
     if maximizing_player:
         max_eval = float('-inf')
         for move in generate_moves(scores, selected):
-            selected[move] = 1
-            eval = minimax(depth - 1, alpha, beta, False, scores, selected)
-            selected[move] = 0
+            selected_copy = copy.deepcopy(selected)
+            selected_copy[move] = True
+            score, new_state = make_move(scores, move)
+            eval = minimax(depth - 1, alpha, beta, False, new_state, selected_copy)
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
             if beta <= alpha:
@@ -43,9 +45,10 @@ def minimax(depth, alpha, beta, maximizing_player, scores, selected):
     else:
         min_eval = float('inf')
         for move in generate_moves(scores, selected):
-            selected[move] = 1
-            eval = minimax(depth - 1, alpha, beta, True, scores, selected)
-            selected[move] = 0
+            selected_copy = copy.deepcopy(selected)
+            selected_copy[move] = True
+            score, new_state = make_move(scores, move)
+            eval = minimax(depth - 1, alpha, beta, True, new_state, selected_copy)
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
             if beta <= alpha:
@@ -54,15 +57,13 @@ def minimax(depth, alpha, beta, maximizing_player, scores, selected):
 
 
 # Game setup
-score_array = [-10, -50, 3, 7, 2, 1, 9, 10, 12, 14]
+score_array = [-10, 3, 7, 2, 1, 9, 10, 12, 14]
 depth = int(math.log(len(score_array), 2))
 game_state = score_array.copy()
 current_player = 'AI'
 selected = [False] * len(score_array)
 aiTotalScore = 0
 humanTotalScore = 0
-
-
 
 # Main game loop
 while not game_over(game_state):
@@ -71,26 +72,32 @@ while not game_over(game_state):
         best_move = 0
         for move in generate_moves(game_state, selected):
             new_state, score = make_move(game_state, move)
-            selected[move] = 1
+            selected[move] = True
             eval = minimax(depth, float('-inf'), float('inf'), False, game_state, selected)
-            selected[move] = 0
+            selected[move] = False
             if eval > best_score:
                 best_score = eval
                 best_move = move
-        print(f"best move is {best_move}")
-        selected[best_move] = 1
+        selected[score_array.index(game_state[best_move])] = True
         score, game_state = make_move(game_state, best_move)
         aiTotalScore += score
-        print("AI selects index", best_move, "and AI score:", aiTotalScore)
+        print("-------------------------------------------------------------")
+        print("AI selects index", best_move , " Value :", score)
+        print("AI score:", aiTotalScore)
+        print("-------------------------------------------------------------")
         current_player = 'Human'
     else:
+        print("-------------------------------------------------------------")
         print("Current game state:", game_state)
-        print(f"Index range 0 to {len(game_state)-1}")
+        print("-------------------------------------------------------------")
+        print(f"Index range 0 to {len(game_state) - 1}")
         chosen_index = int(input("Enter the index of your move: "))
-        selected[chosen_index] = 1
+        selected[score_array.index(game_state[chosen_index])] = True
         score, game_state = make_move(game_state, chosen_index)
         humanTotalScore += score
-        print("You select index", chosen_index, "and Your score:", humanTotalScore)
+        print("Your selects index", chosen_index, " Value: ",score)
+        print("Your score:", humanTotalScore)
+        print("-------------------------------------------------------------")
         current_player = 'AI'
 
 # Game over, determine the winner
