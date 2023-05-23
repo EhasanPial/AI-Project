@@ -29,7 +29,7 @@ goal = 'Bucharest'
 
 def astar(graph, hsld, start, goal):
 
-    pq = [(0, start)]
+    pq = [(hsld[start], start)]
     visited = set()
     g_scores = {node: float('inf') for node in graph}
     g_scores[start] = 0
@@ -49,9 +49,9 @@ def astar(graph, hsld, start, goal):
         for neighbor, cost in graph[current].items():
             if neighbor in visited:
                 continue
-            tentative_g_score = g_scores[current] + cost
-            if tentative_g_score < g_scores[neighbor]:
-                g_scores[neighbor] = tentative_g_score
+            temp_score = g_scores[current] + cost
+            if temp_score < g_scores[neighbor]:
+                g_scores[neighbor] = temp_score
                 f_scores[neighbor] = g_scores[neighbor] + hsld[neighbor]
                 heapq.heappush(pq, (f_scores[neighbor], neighbor))
 
