@@ -89,7 +89,6 @@ def ai_turn():
 
     best_score = float('-inf')
     best_move = 0
-
     best_score_sub = float('-inf')
     best_move_sub = 0
     for move in generate_moves(game_state, selected):
