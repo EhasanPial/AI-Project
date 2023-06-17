@@ -2,198 +2,166 @@ import copy
 import math
 import tkinter as tk
 from tkinter import messagebox, Button
+from pygame import mixer
+from PIL import ImageTk, Image
 
 
-def check_wins():
-    if ai_total_score > human_total_score1 and ai_total_score > human_total_score2:
-        messagebox.showinfo("Game Over", "...........AI WINS...........")
-    elif human_total_score1 > ai_total_score and human_total_score1 > human_total_score2:
-        messagebox.showinfo("Game Over", "...........Player 1 Wins...........")
-    elif human_total_score2 > ai_total_score and human_total_score2 > human_total_score1:
-        messagebox.showinfo("Game Over", "...........Player 2 Wins...........")
-    else:
-        messagebox.showinfo("Game Over", "...........It's a tie...........")
-    window.destroy()
+class NumberGame:
+    def __init__(self):
+        self.toggle_sound = False
+        self.score_array = [-12, -17, -11, 1999, 100, 1000]
+        self.subtraction_array = [-132, 2, 3, 55, 99, 199]
+        self.depth = int(math.log(len(self.score_array), 2))
+        self.game_state = copy.deepcopy(self.score_array)
+        self.subtraction_state = copy.deepcopy(self.subtraction_array)
+        self.selected = [False] * len(self.score_array)
+        self.selected_sub = [False] * len(self.subtraction_array)
+        self.humanTotalScore1 = 0
+        self.humanTotalScore2 = 0
+        self.aiTotalScore = 0
+        self.current_player = "AI"
+
+        self.window = tk.Tk()
+        self.window.title("Number Game")
+        self.window.geometry("1100x600")
+        self.window.size()
+        self.window.configure(bg="#ffffff")
+
+        # Initialize mixer for sound playback
+        mixer.init()
+
+        # Load the sound icons and reduce their size by 20 pixels
+        self.sound_icon = tk.PhotoImage(file="sound_on.png").subsample(18)
+        self.mute_icon = tk.PhotoImage(file="sound_off.png").subsample(18)
+
+        # Set initial sound state
+        self.sound_on = True
+
+        # Create the sound button
+        self.sound_button_image = self.sound_icon  # Store a reference to the image object
+        self.sound_button = tk.Button(self.window, image=self.sound_button_image, command=self.toggle_sound, bg="black")
+        self.sound_button.place(relx=self.window.winfo_width() - .10, rely=0.05, anchor="ne")
+
+        # Create labels and buttons
+        self.create_labels()
+        self.create_buttons()
+
+        self.update_scores()
+        self.window.after(1000, self.ai_turn)
+        self.window.mainloop()
+
+    def create_labels(self):
+        background_image = tk.PhotoImage(file="back.png")
+        canvas = tk.Canvas(self.window, width=700, height=3500)
+        canvas.pack(fill=tk.BOTH, expand=True)
+        canvas.create_image(0, 0, image=background_image, anchor='nw')
+
+        self.score_array_text = tk.Label(self.window, text="Score Array", bg="#2ed573",
+                                         fg="white",
+                                         font=("8514oem", 14, "bold"), padx=10, pady=5, bd=1,
+                                         relief="solid")
+        self.score_array_text.place(relx=0.019, rely=0.500, anchor="w")
+
+        self.subtract_array_text = tk.Label(self.window, text="Subtraction Array", bg="#ff4757",
+                                            fg="white",
+                                            font=("8514oem", 14, "bold"), padx=10, pady=5, bd=1,
+                                            relief="solid")
+        self.subtract_array_text.place(relx=0.019, rely=0.699, anchor="w")
+
+        self.player_label = tk.Label(self.window, text="Current player: " + self.current_player, bg="#f8f9fa",
+                                     fg="#495057",
+                                     font=("8514oem", 14, "bold"), padx=10, pady=5, bd=1,
+                                     relief="solid")
+        self.player_label.place(relx=0.5, rely=0.15, anchor="center")
+
+    def create_buttons(self):
+        self.score_buttons = []
+        self.subtract_buttons = []
+
+        for i in range(len(self.score_array)):
+            button = Button(self.window, text=str(self.score_array[i]), width=8, height=2,
+                            command=lambda index=i: self.select_score(index))
+            button.place(relx=0.019 + i * 0.056, rely=0.550, anchor="w")
+            self.score_buttons.append(button)
+
+        for i in range(len(self.subtraction_array)):
+            button = Button(self.window, text=str(self.subtraction_array[i]), width=8, height=2,
+                            command=lambda index=i: self.select_subtraction(index))
+            button.place(relx=0.019 + i * 0.056, rely=0.749, anchor="w")
+            self.subtract_buttons.append(button)
+
+    def update_scores(self):
+        self.player_label.config(text="Current player: " + self.current_player)
+        self.player_label.update()
+
+        for i in range(len(self.score_array)):
+            if self.selected[i]:
+                self.score_buttons[i].config(state="disabled")
+            else:
+                self.score_buttons[i].config(state="normal")
+
+        for i in range(len(self.subtraction_array)):
+            if self.selected_sub[i]:
+                self.subtract_buttons[i].config(state="disabled")
+            else:
+                self.subtract_buttons[i].config(state="normal")
+
+    def select_score(self, index):
+        if self.current_player == "Human":
+            self.selected[index] = True
+            self.humanTotalScore1 += self.score_array[index]
+            self.score_array[index] = 0
+            self.current_player = "AI"
+            self.update_scores()
+            self.ai_turn()
+
+    def select_subtraction(self, index):
+        if self.current_player == "Human":
+            self.selected_sub[index] = True
+            self.humanTotalScore2 += self.subtraction_array[index]
+            self.subtraction_array[index] = 0
+            self.current_player = "AI"
+            self.update_scores()
+            self.ai_turn()
+
+    def ai_turn(self):
+        if self.current_player == "AI":
+            if sum(self.score_array) > sum(self.subtraction_array):
+                max_score = max(self.score_array)
+                index = self.score_array.index(max_score)
+                self.selected[index] = True
+                self.aiTotalScore += max_score
+                self.score_array[index] = 0
+            else:
+                max_subtraction = max(self.subtraction_array)
+                index = self.subtraction_array.index(max_subtraction)
+                self.selected_sub[index] = True
+                self.aiTotalScore -= max_subtraction
+                self.subtraction_array[index] = 0
+
+            if self.current_player == "AI":
+                self.current_player = "Human"
+
+            self.update_scores()
+
+            if sum(self.score_array) + sum(self.subtraction_array) > 0:
+                self.window.after(1000, self.ai_turn)
+            else:
+                self.end_game()
+
+    def end_game(self):
+        self.score_array_text.config(text="Human Score: " + str(self.humanTotalScore1))
+        self.subtract_array_text.config(text="AI Score: " + str(self.aiTotalScore))
+
+        if self.humanTotalScore1 + self.humanTotalScore2 > self.aiTotalScore:
+            messagebox.showinfo("Game Over", "Congratulations! You won!")
+        elif self.humanTotalScore1 + self.humanTotalScore2 < self.aiTotalScore:
+            messagebox.showinfo("Game Over", "Oops! AI won!")
+        else:
+            messagebox.showinfo("Game Over", "It's a tie!")
+
+        self.window.quit()
 
 
-def generate_moves(scores, selected):
-    # Generates a list of available moves (indices of unselected scores)
-    return [i for i, score in enumerate(scores) if not selected[i]]
+game = Game()
 
-
-def evaluate(scores, selected):
-    # Calculates the total score for the selected scores
-    res = [score for i, score in enumerate(scores) if selected[i]]
-    return sum(res)
-
-
-def game_over(selected):
-    # Returns True if all scores have been selected
-    return all(selected)
-
-
-def minimax(depth, alpha, beta, maximizing_player, scores, selected):
-    if depth == 0 or game_over(selected):
-        return evaluate(scores, selected)
-
-    if maximizing_player:
-        max_eval = float('-inf')
-        for move in generate_moves(scores, selected):
-            selected[move] = True
-            eval_score = minimax(depth - 1, alpha, beta, False, scores, selected)
-            selected[move] = False
-            max_eval = max(max_eval, eval_score)
-            alpha = max(alpha, eval_score)
-            if beta <= alpha:
-                break
-        return max_eval
-    else:
-        min_eval = float('inf')
-        for move in generate_moves(scores, selected):
-            selected[move] = True
-            eval_score = minimax(depth - 1, alpha, beta, True, scores, selected)
-            selected[move] = False
-            min_eval = min(min_eval, eval_score)
-            beta = min(beta, eval_score)
-            if beta <= alpha:
-                break
-        return min_eval
-
-
-# Global variables
-score_array = [-12, -17, -11, 1999, 100, 1000]
-subtraction_array = [-132, 2, 3, 55, 99, 199]
-
-depth = int(math.log(len(score_array), 2))
-game_state = copy.deepcopy(score_array)
-subtraction_state = copy.deepcopy(subtraction_array)
-selected = [False] * len(score_array)
-selectedSub = [False] * len(subtraction_array)
-
-human_total_score1 = 0
-human_total_score2 = 0
-ai_total_score = 0
-current_player = "AI"
-
-# Create the main window
-window = tk.Tk()
-window.title("Number Game")
-window.geometry("800x600")
-window.config(bg="#ffffff")
-
-score_array_text = tk.Label(window, text="Score Array")
-score_array_text.grid(row=0, column=0, pady=(20, 10))
-
-subtract_array_text = tk.Label(window, text="Subtraction Array")
-subtract_array_text.grid(row=2, column=0, pady=(20, 10))
-
-player_label = tk.Label(window, text="Current player: " + current_player, bg="#f8f9fa", fg="#495057",
-                        font=("Helvetica", 14, "bold"), padx=10, pady=5)
-player_label.grid(row=4, column=0, pady=(20, 10), columnspan=3)
-
-
-def handle_score_click(index):
-    global current_player, human_total_score1, human_total_score2, ai_total_score, selected
-
-    if selected[index]:
-        return
-
-    selected[index] = True
-    score_button = score_buttons[index]
-    score_button.config(state="disabled", relief="sunken")
-
-    total_score = evaluate(score_array, selected)
-    if current_player == "Player 1":
-        human_total_score1 = total_score
-    elif current_player == "Player 2":
-        human_total_score2 = total_score
-    else:
-        ai_total_score = total_score
-
-    current_player = "Player 1" if current_player == "Player 2" else "Player 2"
-    player_label.config(text="Current player: " + current_player)
-
-    if game_over(selected):
-        check_wins()
-    elif current_player == "AI":
-        ai_move()
-
-
-def handle_subtraction_click(index):
-    global current_player, subtraction_state, selectedSub
-
-    if selectedSub[index]:
-        return
-
-    selectedSub[index] = True
-    subtraction_button = subtraction_buttons[index]
-    subtraction_button.config(state="disabled", relief="sunken")
-
-    current_player = "AI" if current_player == "Player 2" else "Player 2"
-    player_label.config(text="Current player: " + current_player)
-
-    if game_over(selectedSub):
-        check_wins()
-    elif current_player == "AI":
-        ai_move()
-
-def ai_turn():
-    global current_player, humanTotalScore1, humanTotalScore2, aiTotalScore
-    messagebox.showinfo("AI Turn", "AI's turn!")
-    best_score = float('-inf')
-    best_move = 0
-    best_score_sub = float('-inf')
-    best_move_sub = 0
-    for move in generate_moves(game_state, selected):
-        selected[move] = True
-        eval_score = minimax(depth, float('-inf'), float('inf'), False, game_state, selected)
-        selected[move] = False
-        if eval_score > best_score:
-            best_score = eval_score
-            best_move = move
-        print("AI explores:", move, "and best score:", eval_score)
-
-    for move in generate_moves(subtraction_state, selectedSub):
-        selectedSub[move] = True
-        eval_score_sub = minimax(depth, float('-inf'), float('inf'), False, subtraction_state, selectedSub)
-        selectedSub[move] = False
-        if eval_score_sub > best_score_sub:
-            best_score_sub = eval_score_sub
-            best_move_sub = move
-        print("AI explores:", move, "and best sub score:", eval_score_sub)
-
-    selected[best_move] = True
-    selectedSub[best_move_sub] = True
-
-    aiTotalScore += game_state[best_move]
-    humanTotalScore1 -= subtraction_array[best_move_sub]
-    humanTotalScore2 -= subtraction_array[best_move_sub]
-
-    update_scores()
-    update_game_state()
-
-    if game_over(selectedSub):
-        checkWins()
-    else:
-        current_player = "Player 1"
-        player1_turn()
-
-
-
-# Create score buttons
-score_buttons = []
-for i, score in enumerate(score_array):
-    score_button = Button(window, text=str(score), width=10, height=2, relief="raised",
-                          command=lambda i=i: handle_score_click(i))
-    score_button.grid(row=1, column=i, padx=10)
-    score_buttons.append(score_button)
-
-# Create subtraction buttons
-subtraction_buttons = []
-for i, subtract in enumerate(subtraction_array):
-    subtraction_button = Button(window, text=str(subtract), width=10, height=2, relief="raised",
-                                command=lambda i=i: handle_subtraction_click(i))
-    subtraction_button.grid(row=3, column=i, padx=10)
-    subtraction_buttons.append(subtraction_button)
-
-window.mainloop()
