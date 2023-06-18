@@ -42,6 +42,7 @@ def generate_moves(scores, selected):
 
 ############################# Heuristic ###################################
 def evaluate(aiScore, human1Score, human2Score):
+    print (f"aiScore: {aiScore} human1Score: {human1Score} human2Score: {human2Score}")
     return aiScore - (human1Score + human2Score)
 
 
@@ -53,20 +54,28 @@ def game_over(selected):
 
 
 def minimax(depth, alpha, beta, maximizing_player, scores, selected, aiScore, human1Score, human2Score):
+    print(f"depth: {depth} alpha: {alpha} beta: {beta} maximizing_player: {maximizing_player}  aiScore: {aiScore} human1Score: {human1Score} human2Score: {human2Score}")
     if depth <= 0 or game_over(selected):
         return evaluate(aiScore, human1Score, human2Score)
+    #print all paramerters in one line with text
+
 
     if maximizing_player == 0:
         max_eval = float('-inf')
         for move in generate_moves(scores, selected):
             selected[move] = True
             aiScore += scores[move]
-            eval_score = minimax(depth - 1, alpha, beta, (maximizing_player + 1) % 3, scores, selected, aiTotalScore+game_state[move],
-                                 human1Score, human2Score)
+            eval_score = minimax(depth - 1, alpha, beta, (maximizing_player + 1) % 3, scores, selected, aiScore,
+                              human1Score, human2Score)
+            print(f"eval_score: {eval_score} move : {move}")
             selected[move] = False
             aiScore -= scores[move]
             max_eval = max(max_eval, eval_score)
+            print(f"max_eval: {max_eval}")
+
             alpha = max(alpha, eval_score)
+            #print alpha beta with text
+            print(f"alpha: {alpha} beta: {beta}")
             if beta <= alpha:
                 break
         return max_eval
@@ -81,6 +90,7 @@ def minimax(depth, alpha, beta, maximizing_player, scores, selected, aiScore, hu
                 human2Score += scores[move]
             eval_score = minimax(depth - 1, alpha, beta, (maximizing_player + 1) % 3, scores, selected, aiScore,
                                  human1Score, human2Score)
+            print(f"eval_score human: {eval_score} move : {move}")
             selected[move] = False
             if maximizing_player == 1:
                 human1Score -= scores[move]
@@ -88,7 +98,10 @@ def minimax(depth, alpha, beta, maximizing_player, scores, selected, aiScore, hu
                 human2Score -= scores[move]
             min_eval = min(min_eval, eval_score)
             beta = min(beta, eval_score)
+            print(f"min_eval human: {min_eval}")
+            print(f"alpha human: {alpha} beta human: {beta}")
             if beta <= alpha:
+                print(f"break ")
                 break
         return min_eval
 
@@ -194,21 +207,23 @@ def ai_turn():
     player_label.config(text="Current player: " + current_player)
     window.update()
     time.sleep(1)
-    # messagebox.showinfo("AI Turn", "AI's turn!")
+
     best_score = float('-inf')
     best_score_sub = float('-inf')
     best_move_sub = 0
     best_move = 0
     for move in generate_moves(game_state, selected):
         selected[move] = True
+        print("AI starts exploring:", move)
         eval_score = minimax(depth, float('-inf'), float('inf'), 1, game_state, selected, aiTotalScore+game_state[move],
                              humanTotalScore1, humanTotalScore2)
         selected[move] = False
         if eval_score > best_score:
             best_score = eval_score
             best_move = move
-        print("AI explores:", move, "and best score:", eval_score)
-    print("AI Best Score Found at:", best_move, "and best score:", best_score)
+        print("----------AI explores:", move, "and best score:", eval_score)
+        break
+    #print("AI Best Score Found at:", best_move, "and best score:", best_score)
     for move in generate_moves(subtraction_state, selectedSub):
         selectedSub[move] = True
         eval_score_sub = minimax(depth, float('-inf'), float('inf'), 1, subtraction_state, selectedSub, aiTotalScore,
@@ -217,8 +232,8 @@ def ai_turn():
         if eval_score_sub > best_score_sub:
             best_score_sub = eval_score_sub
             best_move_sub = move
-        print("AI explores:", move, "and best sub score:", eval_score_sub)
-    print("AI Best Subtraction Score Found at:", best_move_sub, "and best score:", best_score_sub)
+        #print("AI explores:", move, "and best sub score:", eval_score_sub)
+    #print("AI Best Subtraction Score Found at:", best_move_sub, "and best score:", best_score_sub)
     selected[best_move] = True
     selectedSub[best_move_sub] = True
 
@@ -344,9 +359,9 @@ def save_difficulty(difficul):
         depth = 0
     elif difficulty == "Medium":
         # medium level
-        depth = math.log(len(score_array), 2) / 2
+        depth = math.ceil(math.log(len(score_array), 2) / 2)
     else:
-        depth = math.log(len(score_array), 2)
+        depth = math.ceil(math.log(len(score_array), 2))
     difficulty_label = tk.Label(window, text="Level: " + difficulty, bg="#f8f9fa", fg="#495057",
                                 font=("8514oem", 14, "bold"), padx=10, pady=5, bd=1,
                                 relief="solid")
@@ -487,8 +502,8 @@ size = 9  # Adjust the size according to your needs
 min_value = -50
 max_value = 55
 
-score_array = [random.randint(min_value, max_value) for _ in range(size)]
-subtraction_array = [random.randint(min_value, max_value) for _ in range(size)]
+score_array = [9,6,4,7,2,1]
+subtraction_array = [9,6,4,7,2,1]
 
 ######################################################## Current player ##################################################
 select_current_player = tk.Label(window, text="Select first player", bg="white", fg="#2d3436",
