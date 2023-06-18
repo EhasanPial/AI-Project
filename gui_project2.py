@@ -195,6 +195,7 @@ def ai_turn():
     best_score = float('-inf')
     best_score_sub = float('-inf')
     best_move_sub = 0
+    best_move = 0
     for move in generate_moves(game_state, selected):
         selected[move] = True
         eval_score = minimax(depth, float('-inf'), float('inf'), 1, game_state, selected, aiTotalScore,
@@ -214,7 +215,7 @@ def ai_turn():
             best_score_sub = eval_score_sub
             best_move_sub = move
         print("AI explores:", move, "and best sub score:", eval_score_sub)
-
+    print("AI Best Subtraction Score Found at:", best_move_sub, "and best score:", best_score_sub)
     selected[best_move] = True
     selectedSub[best_move_sub] = True
 
@@ -235,17 +236,17 @@ def player1_turn():
     global current_player
     current_player = "Player 1"
     player_label.config(text="Current player: " + current_player)
-
+    hint_label.destroy()
 
 def player2_turn():
     global current_player
     current_player = "Player 2"
-
+    hint_label.destroy()
     player_label.config(text="Current player: " + current_player)
 
 
 def process_score_selection(index):
-    global current_player, humanTotalScore1, humanTotalScore2, aiTotalScore
+    global current_player, humanTotalScore1, humanTotalScore2, aiTotalScore, score_selected, hint_label
 
     if not selected[index]:
         chosen_index = index
@@ -259,23 +260,24 @@ def process_score_selection(index):
 
         update_scores()
         update_game_state()
+        score_selected = True
 
 
 def process_subtraction_selection(index):
-    global current_player, humanTotalScore1, humanTotalScore2, aiTotalScore
+    global current_player, humanTotalScore1, humanTotalScore2, aiTotalScore, score_selected
 
-    if not selectedSub[index]:
+    if not selectedSub[index] and score_selected == True:
+        score_selected = False
         chosen_sub_index = index
         selectedSub[chosen_sub_index] = True
         score_sub = subtraction_state[chosen_sub_index]
         if current_player == "Player 1":
             humanTotalScore2 -= score_sub
             aiTotalScore -= score_sub
-            # messagebox.showinfo(current_player, "Score " + str(humanTotalScore1))
+
         elif current_player == "Player 2":
             humanTotalScore1 -= score_sub
             aiTotalScore -= score_sub
-            # messagebox.showinfo(current_player, "Score " + str(humanTotalScore2))
 
         update_scores()
         update_game_state()
@@ -349,7 +351,7 @@ def save_difficulty(difficul):
 
 def save_current_player(cur_player):
     # also check if difficulty is selected
-    global current_player
+    global current_player, difficulty
     if difficulty != "":
         buttonFirstPlayer.destroy()
         buttonSecondPlayer.destroy()
@@ -361,7 +363,7 @@ def save_current_player(cur_player):
         elif current_player == "Player 2":
             player2_turn()
         else:
-            window.after(100, ai_turn)
+            window.after(1000, ai_turn)
         print("Current player:", current_player)
         create_score_buttons()
         create_subtraction_buttons()
@@ -379,6 +381,43 @@ def create_button(btn, color, paddingx):
         width=4,
         height=1
     )
+
+
+def show_hint():
+    global hint_label
+    if current_player != "AI" and current_player != "":
+        best_score = float('-inf')
+        best_score_sub = float('-inf')
+        best_move_sub = 0
+        best_move = 0
+        for move in generate_moves(game_state, selected):
+            selected[move] = True
+            eval_score = minimax(depth, float('-inf'), float('inf'), 1, game_state, selected, aiTotalScore,
+                                 humanTotalScore1, humanTotalScore2)
+            selected[move] = False
+            if eval_score > best_score:
+                best_score = eval_score
+                best_move = move
+
+        for move in generate_moves(subtraction_state, selectedSub):
+            selectedSub[move] = True
+            eval_score_sub = minimax(depth, float('-inf'), float('inf'), 1, subtraction_state, selectedSub,
+                                     aiTotalScore,
+                                     humanTotalScore1, humanTotalScore2)
+            selectedSub[move] = False
+            if eval_score_sub > best_score_sub:
+                best_score_sub = eval_score_sub
+                best_move_sub = move
+        if best_score_sub != float('-inf') and best_score != float('-inf'):
+            hint_label = tk.Label(window,
+                                  text="Score Index: " + str(game_state[best_move]) + "\nSubtraction Index: " + str(
+                                      subtraction_state[best_move_sub]),
+                                  bg="#f8f9fa", fg="#495057",
+                                  font=("8514oem", 14, "bold"), padx=10, pady=5, bd=1,
+                                  relief="solid")
+
+            hint_label.place(relx=.87, rely=0.2, anchor="center")
+            window.update()
 
 
 ####################################################################### Initialize Game ###################################################################################################
@@ -432,7 +471,7 @@ game_over_label = tk.Label(window, bg="#f8f9fa", fg="#495057",
 # Create buttons
 score_buttons = []
 subtraction_buttons = []
-
+score_selected = False
 # Global variables
 size = 9  # Adjust the size according to your needs
 min_value = -50
@@ -496,6 +535,7 @@ aiTotalScore = 0
 mixer.init()
 # Load the sound icons and reduce their size by 20 pixels
 sound_icon = tk.PhotoImage(file="sound_on.png").subsample(18)
+hint_icon = tk.PhotoImage(file="lightbulb.png").subsample(17)
 mute_icon = tk.PhotoImage(file="sound_off.png").subsample(18)
 
 # Set initial sound state
@@ -506,6 +546,10 @@ sound_button_image = sound_icon  # Store a reference to the image object
 sound_button = tk.Button(window, image=sound_button_image, command=toggle_sound, bg="black")
 sound_button.place(relx=window.winfo_width() - .10, rely=0.05, anchor="ne")
 
+hint_button_image = hint_icon  # Store a reference to the image object
+hint_button = tk.Button(window, image=hint_button_image, command=show_hint, bg="blue")
+hint_button.place(relx=window.winfo_width() - .15, rely=0.05, anchor="ne")
+hint_label = tk.Label(window, text="Hint", bg="white", fg="#2d3436")
 # Start the game with Player 1
 gameOpenningSound()
 update_scores()
