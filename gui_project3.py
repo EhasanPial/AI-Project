@@ -16,16 +16,19 @@ def checkWins():
     game_over_label = tk.Label(window, bg="#f8f9fa", fg="#495057",
                                font=("8514oem", 14, "bold"), padx=44, pady=25, bd=1,
                                relief="solid")
-    gameOverSound()
 
     if aiTotalScore > humanTotalScore1 and aiTotalScore > humanTotalScore2:
         game_over_label.config(text="AI WINS")
+        gameOverSound()
     elif humanTotalScore1 > aiTotalScore and humanTotalScore1 > humanTotalScore2:
         game_over_label.config(text="Player 1 Wins")
+        gameWinSound()
     elif humanTotalScore2 > aiTotalScore and humanTotalScore2 > humanTotalScore1:
         game_over_label.config(text="Player 2 Wins")
+        gameWinSound()
     else:
         game_over_label.config(text="It's a tie")
+        gameWinSound()
 
     game_over_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -321,6 +324,12 @@ def gameOpenningSound():
 
 def gameOverSound():
     button_sound = mixer.Sound("game_over.wav")
+    if sound_on:
+        button_sound.play()
+
+
+def gameWinSound():
+    button_sound = mixer.Sound("game_win.wav")
     if sound_on:
         button_sound.play()
 
